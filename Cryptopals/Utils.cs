@@ -8,7 +8,7 @@ namespace Cryptopals
     {
         static Dictionary<string, double> _EnglishLetterFrequency = new Dictionary<string, double>();
 
-        public Utils()
+        static Utils()
         {
             SetupEnglishLetterDictionary();
         }
@@ -100,12 +100,37 @@ namespace Cryptopals
             return result;
         }
 
+        public static byte[] calcXorLoopingKey(byte[] a, byte[] key)
+        {
+            ////char[] charAArray = a.ToCharArray();
+            //char[] charBArray = b.ToCharArray();
+            byte[] result = new byte[a.Length];
+            int len = a.Length;
+
+            // Set length to be the length of the shorter string
+            //if (a.Length > b.Length)
+            //    len = b.Length - 1;
+            //else
+            //    len = a.Length ;
+
+            for (int i = 0; i < len; i++)
+            {
+                var z = a[i] ^ key[i % key.Length];
+                result[i] = (byte)(z); // Error here
+            }
+
+            return result;
+        }
+
         public static double EnglishLetterFrequencyScore(string inputChar)
         {
             var toScore = inputChar.ToUpper();
+            if (!_EnglishLetterFrequency.ContainsKey(toScore))
+            {
+                return 0;
+            }
             return _EnglishLetterFrequency[toScore];
         }
-
 
     }
 }
