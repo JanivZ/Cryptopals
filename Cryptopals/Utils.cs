@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Cryptopals
 {
     public class Utils
     {
+
         static Dictionary<string, double> _EnglishLetterFrequency = new Dictionary<string, double>();
+        public static float Avarage => 3.85f;
 
         static Utils()
         {
@@ -60,7 +63,10 @@ namespace Cryptopals
             int NumberChars = hex.Length;
             byte[] bytes = new byte[NumberChars / 2];
             for (int i = 0; i < NumberChars; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            {
+                var x = hex.Substring(i, 2);
+                bytes[i / 2] = Convert.ToByte(x, 16);
+            }
             return bytes;
         }
 
@@ -131,6 +137,111 @@ namespace Cryptopals
             }
             return _EnglishLetterFrequency[toScore];
         }
+
+        public static KeyValuePair<string ,double> MostLiklyEnglishSingleCharKeyXOR(string input)
+        {
+            var resultList = new Dictionary<string, double>();
+            var inputAsBytes = Utils.StringToByteArray(input);
+
+            for (int i = 0; i < 256; i++)
+            {
+                //var key = Convert.ToString(i, 16);
+                var key = i.ToString("X2");
+                var keyAsBytes = Utils.StringToByteArray(key);
+                var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
+
+                // ASCII conversion - string from bytes  
+                string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
+
+                //// cheat ? if this is a sentence it should have space? 
+                //if (!asciiString.Contains(" "))
+                //{
+                //    continue;
+                //}
+
+                var letterFrequencyScore = ScoreString(asciiString);
+                if (!resultList.ContainsKey(asciiString))
+                {
+                    resultList.Add(asciiString, letterFrequencyScore);
+                }
+            }
+
+            var max = resultList.Aggregate((l, r) => l.Value > r.Value ? l : r);
+            //Debug.Print($"key {max.Key} - value {max.Value}");
+            return max;
+        }
+
+        public static KeyValuePair<string, double> MostLikelyXORDecryptMarius(string input)
+        {
+            var resultList = new Dictionary<string, double>();
+            var inputAsBytes = Utils.StringToByteArray(input);
+
+            for (int i = 0; i < 256; i++)
+            {
+                //var key = Convert.ToString(i, 16);
+                var key = i.ToString("X2");
+                var keyAsBytes = Utils.StringToByteArray(key);
+                var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
+
+                // ASCII conversion - string from bytes  
+                string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
+
+                var letterFrequencyScore = ScoreStringMarius(asciiString);
+                if (!resultList.ContainsKey(asciiString))
+                {
+                    resultList.Add(asciiString, letterFrequencyScore);
+                }
+            }
+
+            var max = resultList.Aggregate((l, r) =>
+                Math.Abs(l.Value - Utils.Avarage) > Math.Abs(r.Value - Utils.Avarage) ? r : l);
+
+            //Debug.Print($"key {max.Key} - value {max.Value}");
+            return max;
+        }
+
+
+        /// <summary>
+        /// this isnt the way to do it - n-grams ?
+        /// maybe need to remove penalty for spaces ? 
+        /// </summary>
+        /// <param name="asciiString"></param>
+        /// <returns></returns>
+        private static double ScoreString(string asciiString)
+        {
+            double scoreToRetrun = 0;
+
+            for (int i = 0; i < asciiString.Length - 1; i++)
+            {
+                var letterScore = Utils.EnglishLetterFrequencyScore(asciiString[i].ToString());
+                if (letterScore == 0 && asciiString[i].ToString() != " ")
+                {
+                    letterScore = -100; // large penalty for non letters as this ( challange 3 ) is supposed to be english
+                }
+                scoreToRetrun = scoreToRetrun + letterScore;
+            }
+
+            // devide by length ? 
+            return scoreToRetrun;
+        }
+
+        private static double ScoreStringMarius(string asciiString)
+        {
+            double scoreToRetrun = 0;
+
+            for (int i = 0; i < asciiString.Length - 1; i++)
+            {
+                var letterScore = Utils.EnglishLetterFrequencyScore(asciiString[i].ToString());
+                if (letterScore == 0 && asciiString[i] != ' ')
+                {
+                    letterScore = +1000;
+                }
+                scoreToRetrun += letterScore;
+            }
+
+            return scoreToRetrun / asciiString.Length;
+        }
+
 
     }
 }

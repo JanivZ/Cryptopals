@@ -1,6 +1,8 @@
 using Cryptopals;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Xunit;
@@ -9,6 +11,18 @@ namespace CryptoPalsChallangeSetTests
 {
     public class Set1
     {
+        string[] _challange4Strings;
+
+        public Set1()
+        {
+            SetupChallange4();
+        }
+
+        private void SetupChallange4()
+        {
+            _challange4Strings = File.ReadAllLines("4.txt");
+        }
+
         // https://cryptopals.com/sets/1/challenges/1
         [Fact]
         public void Challange1()
@@ -39,75 +53,84 @@ namespace CryptoPalsChallangeSetTests
             var resultAsHexRelavantPart = resultAsHex.Substring(0, expected.Length);
 
             Assert.Equal(expected, resultAsHexRelavantPart);
-            
+
         }
 
         // https://cryptopals.com/sets/1/challenges/3
         // help from: https://cedricvanrompay.gitlab.io/cryptopals/challenges/01-to-08.html
         // and help from: https://blog.mattclemente.com/2019/07/12/modulus-operator-modulo-operation.html#rotating-through-limited-options-circular-array
         // and help from: https://stackoverflow.com/a/2806074/606724
-
         [Fact]
         public void Challange3()
         {
             var input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
             var expected = "Cooking MC's like a pound of bacon"; // after checking manually.. 
 
-            var resultList = new Dictionary<string, double>();
-            
+            var max = Utils.MostLiklyEnglishSingleCharKeyXOR(input);
+
+            Assert.Equal(expected, max.Key);
+
+        }
+
+
+
+        [Fact]
+        public void Challange3Marius()
+        {
+            var input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+            var expected = "Cooking MC's like a pound of bacon"; // after checking manually.. 
+            KeyValuePair<string, double> max = Utils.MostLikelyXORDecryptMarius(input);
+
+            Assert.Equal(expected, max.Key);
+
+        }
+
+        
+
+        public void Challange31()
+        {
+            var input = "ETAOIN SHRDLUi";
+            var key = "X"; // the key from challange 3
 
             var inputAsBytes = Utils.StringToByteArray(input);
+            var keyAsBytes = Utils.StringToByteArray(key);
+            var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
 
-            for (int i = 0; i < 256; i++)
-            {
-                //var key = Convert.ToString(i, 16);
-                var key = i.ToString("X2");
-                var keyAsBytes = Utils.StringToByteArray(key);
-                var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
-                
-                // ASCII conversion - string from bytes  
-                string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
-
-                // cheat ? if this is a sentence it should have space? 
-                if (!asciiString.Contains(" "))
-                {
-                    continue;
-                }
-
-                var letterFrequencyScore = ScoreString(asciiString);
-                if (!resultList.ContainsKey(asciiString))
-                {
-                    resultList.Add(asciiString, letterFrequencyScore);
-                }
-            }
-
-            var max = resultList.Aggregate((l, r) => l.Value > r.Value ? l : r).Key;
-
-            Assert.Equal(expected, max);
+            string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
 
         }
 
-        /// <summary>
-        /// this isnt the way to do it - n-grams ?
-        /// maybe need to remove penalty for spaces ? 
-        /// </summary>
-        /// <param name="asciiString"></param>
-        /// <returns></returns>
-        private double ScoreString(string asciiString)
+        // https://cryptopals.com/sets/1/challenges/4
+        [Fact]
+        public void Challange4()
         {
-            double scoreToRetrun = 0;
+            var resultDic = new Dictionary<string, double>();
 
-            for (int i = 0; i < asciiString.Length - 1; i++)
+            foreach (var stringToTest in _challange4Strings)
             {
-                var letterScore = Utils.EnglishLetterFrequencyScore(asciiString[i].ToString());
-                if (letterScore == 0)
+                var x = Utils.MostLiklyEnglishSingleCharKeyXOR(stringToTest);
+                resultDic.Add(x.Key, x.Value);
+            }
+           var xx = resultDic.Aggregate((l, r) => l.Value > r.Value ? l : r);
+        }
+
+        [Fact]
+        public void challange4Marius()
+        {
+            var sortedresult = new SortedList< double, string>();
+            foreach (var item in _challange4Strings)
+            {
+                var decrypted = Utils.MostLikelyXORDecryptMarius(item);
+                if (!sortedresult.ContainsKey(decrypted.Value))
                 {
-                    letterScore = -10; // large penalty for non letters as this ( challange 3 ) is supposed to be english
+                    sortedresult.Add(decrypted.Value, decrypted.Key);
+
                 }
-                scoreToRetrun = scoreToRetrun + letterScore;
+                //Debug.Print($"key {decrypted.Key} - value {decrypted.Value}");
             }
 
-            return scoreToRetrun;
+
         }
+        
     }
 }

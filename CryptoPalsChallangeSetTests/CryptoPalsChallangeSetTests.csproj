@@ -23,4 +23,10 @@
     <ProjectReference Include="..\Cryptopals\Cryptopals.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="4.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
