@@ -203,7 +203,10 @@ namespace Cryptopals
 
         /// <summary>
         /// this isnt the way to do it - n-grams ?
+        /// accord.net ?
+        /// markiv chains ? hidden markov model
         /// maybe need to remove penalty for spaces ? 
+        /// https://www.codeproject.com/Articles/541428/Sequence-Classifiers-in-Csharp-Part-I-Hidden-Marko
         /// </summary>
         /// <param name="asciiString"></param>
         /// <returns></returns>

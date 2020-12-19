@@ -17,7 +17,6 @@ namespace CryptoPalsChallangeSetTests
         {
             SetupChallange4();
         }
-
         private void SetupChallange4()
         {
             _challange4Strings = File.ReadAllLines("4.txt");
@@ -72,8 +71,6 @@ namespace CryptoPalsChallangeSetTests
 
         }
 
-
-
         [Fact]
         public void Challange3Marius()
         {
@@ -84,8 +81,6 @@ namespace CryptoPalsChallangeSetTests
             Assert.Equal(expected, max.Key);
 
         }
-
-        
 
         public void Challange31()
         {
@@ -104,6 +99,7 @@ namespace CryptoPalsChallangeSetTests
         [Fact]
         public void Challange4()
         {
+            var expected = "Now that the party is jumping\n";
             var resultDic = new Dictionary<string, double>();
 
             foreach (var stringToTest in _challange4Strings)
@@ -111,13 +107,18 @@ namespace CryptoPalsChallangeSetTests
                 var x = Utils.MostLiklyEnglishSingleCharKeyXOR(stringToTest);
                 resultDic.Add(x.Key, x.Value);
             }
-           var xx = resultDic.Aggregate((l, r) => l.Value > r.Value ? l : r);
+            
+            var highestValueResult = resultDic.Aggregate((l, r) => l.Value > r.Value ? l : r);
+            Assert.Equal(expected, highestValueResult.Key);
+
         }
 
         [Fact]
         public void challange4Marius()
         {
+            var expected = "Now that the party is jumping\n";
             var sortedresult = new SortedList< double, string>();
+
             foreach (var item in _challange4Strings)
             {
                 var decrypted = Utils.MostLikelyXORDecryptMarius(item);
@@ -129,8 +130,10 @@ namespace CryptoPalsChallangeSetTests
                 //Debug.Print($"key {decrypted.Key} - value {decrypted.Value}");
             }
 
+            var highestValueResult = sortedresult.First().Value;
+            Assert.Equal(expected, highestValueResult);
 
         }
-        
+
     }
 }
