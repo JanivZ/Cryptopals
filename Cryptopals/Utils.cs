@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,7 +49,7 @@ namespace Cryptopals
         }
 
         // from: https://stackoverflow.com/a/311179/606724
-        public static string ByteArrayToString(byte[] ba)
+        public static string ByteArrayToHexString(byte[] ba)
         {
             //return BitConverter.ToString(ba).Replace("-", ""); // this doesnt work for the comparison in the tests 
             StringBuilder hex = new StringBuilder(ba.Length * 2);
@@ -58,7 +59,7 @@ namespace Cryptopals
         }
 
         // from: https://stackoverflow.com/a/311179/606724
-        public static byte[] StringToByteArray(String hex)
+        public static byte[] HexStringToByteArray(String hex)
         {
             int NumberChars = hex.Length;
             byte[] bytes = new byte[NumberChars / 2];
@@ -84,7 +85,7 @@ namespace Cryptopals
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
-        public static byte[] calcXor(byte[] a, byte[] b)
+        public static byte[] CalcXor(byte[] a, byte[] b)
         {
             ////char[] charAArray = a.ToCharArray();
             //char[] charBArray = b.ToCharArray();
@@ -102,11 +103,12 @@ namespace Cryptopals
                 var z = a[i] ^ b[i];
                 result[i] = (byte)(z); // Error here
             }
+        
 
             return result;
         }
 
-        public static byte[] calcXorLoopingKey(byte[] a, byte[] key)
+        public static byte[] CalcXorLoopingKey(byte[] a, byte[] key)
         {
             ////char[] charAArray = a.ToCharArray();
             //char[] charBArray = b.ToCharArray();
@@ -137,18 +139,48 @@ namespace Cryptopals
             }
             return _EnglishLetterFrequency[toScore];
         }
+        public static string MostLiklyEnglishSingleCharKeyXOR(byte[] input)
+        {
+            var keyResultList = new List<Tuple<string, double, string>>();
+            for (int i = 0; i < 256; i++)
+            {
+                //var key = Convert.ToString(i, 16);
+                var key = i.ToString("X2");
+                var keyAsBytes = Utils.HexStringToByteArray(key);
+                var resultByteArray = Utils.CalcXorLoopingKey(input, keyAsBytes);
 
-        public static KeyValuePair<string ,double> MostLiklyEnglishSingleCharKeyXOR(string input)
+                // ASCII conversion - string from bytes  
+                string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
+
+                //// cheat ? if this is a sentence it should have space? 
+                //if (!asciiString.Contains(" "))
+                //{
+                //    continue;
+                //}
+
+                var letterFrequencyScore = ScoreString(asciiString);
+                
+                keyResultList.Add(new Tuple<string, double, string>(asciiString, letterFrequencyScore, key));
+            }
+
+            var max = keyResultList.Aggregate((l, r) => l.Item2 > r.Item2 ? l : r);
+            //Debug.Print($"key {max.Key} - value {max.Value}");
+            return max.Item3;
+
+
+        }
+
+
+        public static KeyValuePair<string, double> DecryptMostLiklyEnglishSingleCharKeyXOR(byte[] input)
         {
             var resultList = new Dictionary<string, double>();
-            var inputAsBytes = Utils.StringToByteArray(input);
 
             for (int i = 0; i < 256; i++)
             {
                 //var key = Convert.ToString(i, 16);
                 var key = i.ToString("X2");
-                var keyAsBytes = Utils.StringToByteArray(key);
-                var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
+                var keyAsBytes = Utils.HexStringToByteArray(key);
+                var resultByteArray = Utils.CalcXorLoopingKey(input, keyAsBytes);
 
                 // ASCII conversion - string from bytes  
                 string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
@@ -169,19 +201,27 @@ namespace Cryptopals
             var max = resultList.Aggregate((l, r) => l.Value > r.Value ? l : r);
             //Debug.Print($"key {max.Key} - value {max.Value}");
             return max;
+
+
+        }
+        public static KeyValuePair<string ,double> MostLiklyEnglishSingleCharKeyXOR(string hexString)
+        {
+            var inputAsBytes = Utils.HexStringToByteArray(hexString);
+            return DecryptMostLiklyEnglishSingleCharKeyXOR(inputAsBytes);
+
         }
 
         public static KeyValuePair<string, double> MostLikelyXORDecryptMarius(string input)
         {
             var resultList = new Dictionary<string, double>();
-            var inputAsBytes = Utils.StringToByteArray(input);
+            var inputAsBytes = Utils.HexStringToByteArray(input);
 
             for (int i = 0; i < 256; i++)
             {
                 //var key = Convert.ToString(i, 16);
                 var key = i.ToString("X2");
-                var keyAsBytes = Utils.StringToByteArray(key);
-                var resultByteArray = Utils.calcXorLoopingKey(inputAsBytes, keyAsBytes);
+                var keyAsBytes = Utils.HexStringToByteArray(key);
+                var resultByteArray = Utils.CalcXorLoopingKey(inputAsBytes, keyAsBytes);
 
                 // ASCII conversion - string from bytes  
                 string asciiString = Encoding.ASCII.GetString(resultByteArray, 0, resultByteArray.Length);
@@ -216,15 +256,16 @@ namespace Cryptopals
 
             for (int i = 0; i < asciiString.Length - 1; i++)
             {
-                var letterScore = Utils.EnglishLetterFrequencyScore(asciiString[i].ToString());
+                var letterScore = EnglishLetterFrequencyScore(asciiString[i].ToString());
                 if (letterScore == 0 && asciiString[i].ToString() != " ")
                 {
                     letterScore = -100; // large penalty for non letters as this ( challange 3 ) is supposed to be english
                 }
-                scoreToRetrun = scoreToRetrun + letterScore;
+                scoreToRetrun += letterScore;
             }
 
-            // devide by length ? 
+            // devide by length to normalize for string length ?  - 
+            // eg: a very long string with gibberish and english might score higher than the string "Hello" ? 
             return scoreToRetrun;
         }
 
@@ -246,5 +287,67 @@ namespace Cryptopals
         }
 
 
+        public static int HammingDistance(string string1, string string2) 
+        {
+            //byte[] bytesOfString1 = Encoding.ASCII.GetBytes(string1); ASCII ? 
+            byte[] bytesOfString1 = Encoding.UTF8.GetBytes(string1);
+            byte[] bytesOfString2 = Encoding.UTF8.GetBytes(string2);
+
+            var result = HammingDistance(bytesOfString1, bytesOfString2);
+            
+
+            return result; 
+        }
+
+        public static int HammingDistance(byte[] bytesOfString1, byte[] bytesOfString2)
+        {
+            var result = CalcXor(bytesOfString1, bytesOfString2);
+
+            BitArray bb = new BitArray(result);
+            var countOfBits = bb.Cast<bool>().Where(x => x).Count(); // alternative to ExtractBitsFromByte(bytesOfString1[i], i);
+
+            //for (int i = 0; i < bytesOfString1.Length ; i++) // loop on bytes
+            //{
+            //    if ((bytesOfString1[i] ^ bytesOfString2[i]) != 0 )
+            //    {
+            //        int[] bitArrayOfString1 = ExtractBitsFromByte(bytesOfString1[i], i);
+            //        int[] bitArrayOfString2 = ExtractBitsFromByte(bytesOfString2[i], i);
+
+
+            //        for (int j = 0; j < bitArrayOfString1.Length; j++) // loop on bits
+            //        {
+            //            if ((bitArrayOfString1[j] ^ bitArrayOfString2[j]) != 0)
+            //            {
+            //                counter++;
+            //            }
+            //        }
+            //    }
+            //}
+
+            return countOfBits;
+        }
+
+        // help from: https://stackoverflow.com/a/6758288/606724
+        public static int[] ExtractBitsFromByte(byte byteToConvert, int i)
+        {
+            string s = Convert.ToString(byteToConvert, 2); //Convert to binary in a string
+            int[] bitArrayToReturn = s.PadLeft(8, '0') // Add 0's from left
+                .Select(c => int.Parse(c.ToString())) // convert each char to int
+                    .ToArray(); // Convert IEnumerable from select to Array
+            return bitArrayToReturn;
+        }
+
+        public static int hammingDist(String str1,
+                       String str2)
+        {
+            int i = 0, count = 0;
+            while (i < str1.Length)
+            {
+                if (str1[i] != str2[i])
+                    count++;
+                i++;
+            }
+            return count;
+        }
     }
 }
